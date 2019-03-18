@@ -18,5 +18,3 @@ class Reconciler(ABC):
     def __init__(self, company_name):
         self.company_name = company_name
         self.account = self.westpac_accounts[company_name]
-    def get_cleaned_bank_statement(self, statement_df):
-        
