@@ -69,7 +69,19 @@ for each ATM_SOLUTIONS_COMPANY:
 
 ```
 
+## /AppData/fixes.csv Specs
 
+| Column Name     | Data Type       |
+| ------------- |:-------------:|
+|ITEM_NUM|Int|
+|ATM_SOLUTIONS_COMPANY(1=ATMCO, 2=VENUE_SMART, 3=CASHPOINT|Int|
+|ERROR_DATE|Date(mm/dd/yyyy)|
+|ERROR_TYPE(1=CHANGE_DESCRIPTION, 2=TID_CHANGE, 3=INSERT_NEW_TRANSACTION, 4=DELETE_ROW)|Int|
+|EXISTING_REFERENCE|Text|
+|INSERTED_AMOUNT|Float|
+|INSERTED_CREDIT_DEBIT (1=DEBIT, 2=CREDIT)|Int|
+|INSERTED_REFERENCE|Text|
+|COMMENT|Text|
 
 
 <!-- ## Algorithm Toolbox

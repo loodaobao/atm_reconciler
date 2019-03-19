@@ -1,6 +1,6 @@
 # ignore AppData folder content
-!AppData/*test_statement.pickle
-Data.csv
+AppData/*
+
 
 
 # Byte-compiled / optimized / DLL files
