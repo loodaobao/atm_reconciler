@@ -11,10 +11,8 @@ class Statement:
     def __init__(self):
         self.new_raw_df = pd.read_csv("Data.csv")
         self._project_root = os.getcwd()
-
         self._appdata_path = join(self._project_root, "AppData")
         self._pick_path = join(self._appdata_path, "statement.pickle")
-        print(self._pick_path)
     def _load_previous_statement(self):
         try:
             return pickle.load(open(self._pick_path,"rb"))

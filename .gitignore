@@ -1,3 +1,8 @@
+# ignore AppData folder content
+!AppData/*test_statement.pickle
+Data.csv
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
