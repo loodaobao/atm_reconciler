@@ -90,6 +90,44 @@ class Statement:
                         (self.statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
                     )
                 ]
+    def _change_description(self, error_company_account, error_ref, inserted_ref):
+        assert 1==len(
+                self.statement[
+                    (
+                        (self.statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
+                        (self.statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
+                    )
+                ]
+            )
+        self.statement.loc[(
+            (self.statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
+            (self.statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
+        ),[txt.STATEMENT_HEADER_NARRATIVE]] = inserted_ref
+    def _insert_new_transaction(self,
+                                error_company_account,
+                                relevant_date,
+                                inserted_credit_debit,
+                                inserted_amount,
+                                inserted_ref
+                                ):
+        data_row = [
+                error_company_account,
+                relevant_date,
+                inserted_ref,
+                inserted_amount if inserted_credit_debit == 1 else 0,
+                inserted_amount if inserted_credit_debit == 2 else 0,
+                np.nan,
+                np.nan
+            ]
+        corrected_df = pd.DataFrame(
+                [data_row],
+                columns=self._statement.columns
+            )
+        self._statement = self._statement.append(corrected_df, ignore_index=True)
+
+
+
+
     def _fix(self):
         #Apply change-tid instructions only after other fixes are applied.
         if not self._cleaned:
