@@ -16,6 +16,11 @@ class Statement:
                                 txt.VENUE_SMART: 36022436029,
                                 txt.CASH_POINT: 36022444889
                             }
+        error_company_names = [
+            txt.ATMCO,
+            txt.VENUE_SMART,
+            txt.CASH_POINT
+        ]
     def __init__(self):
 
         self._project_root = os.getcwd()
@@ -42,11 +47,47 @@ class Statement:
             self._statement = df
             self._cleaned = True
             return
+    def _apply_fix_to_statement(self, instruction):
+        error_company_number = instruction[txt.FIXES_HEADER_COMPANY_NAME]
+        error_company_name = self.error_company_names[error_company_number]
+        error_account = self.westpac_accounts[error_company_name]
+        relevant_date = instruction[txt.FIXES_HEADER_DATE]
+        error_type = instruction[txt.FIXES_HEADER_ERROR_TYPE]
+        error_ref = instruction[txt.FIXES_HEADER_EXISTING_REF]
+        inserted_credit_debit = instruction[txt.FIXES_HEADER_INSERTED_CREDIT_DEBIT]
+        inserted_amount = instruction[txt.FIXES_HEADER_INSERTED_AMOUNT]
+        inserted_ref = instruction[txt.FIXES_HEADER_INSERTED_REF]
+        old_tid = instruction[txt.FIXES_HEADER_OLD_TID]
+        new_tid = instruction[txt.FIXES_HEADER_NEW_TID]
+        #ERROR_TYPE(1=CHANGE_REFERENCE, 2=TID_CHANGE, 3=INSERT_NEW_TRANSACTION, 4=DELETE_ROW)
+        if error_type == 1:
+            self._change_description(error_company_account, error_ref, inserted_ref)
+        elif error_type == 2:
+            self._change_tid(old_tid, new_tid)
+        elif error_type == 3:
+            self._insert_new_transaction(
+                                            error_company_account,
+                                            relevant_date,
+                                            inserted_credit_debit,
+                                            inserted_amount,
+                                            inserted_ref
+                                        )
+        elif error_type == 4:
+            self._delete_row(error_company_account, error_ref)
+
     def _fix(self):
+        #Apply change-tid instructions only after other fixes are applied.
         if not self._cleaned:
             self._clean()
         fixes_instructions = self._get_fixes_instructions()
-        for index, instruction in fixes_instructions.iterrows():
-            error_company = instruction[txt.FIXES_HEADER_COMPANY_NAME]
-            error_date = instruction[txt.FIXES_HEADER_ERROR_DATE]
-            error_type = instruction[txt.FIXES_HEADER_ERROR_TYPE]
+
+        change_tid_instructions = fixes_instructions[
+                                        fixes_instructions[txt.FIXES_HEADER_ERROR_TYPE]  == 2
+                                        ]
+        other_instructions = fixes_instructions[
+                                        fixes_instructions[txt.FIXES_HEADER_ERROR_TYPE]  != 2
+                                        ]
+        for index, instruction in other_instructions.iterrows():
+            self._apply_fix_to_statement(instruction)
+        for index, instruction in change_tid_instructions.iterrows():
+            self._apply_fix_to_statement(instruction)
