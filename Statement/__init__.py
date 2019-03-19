@@ -11,18 +11,17 @@ sys.path.insert(0,project_dir)
 import Texts as txt
 
 class Statement:
-        westpac_accounts = {
-                                txt.ATMCO: 36022431156,
-                                txt.VENUE_SMART: 36022436029,
-                                txt.CASH_POINT: 36022444889
-                            }
-        error_company_names = [
-            txt.ATMCO,
-            txt.VENUE_SMART,
-            txt.CASH_POINT
-        ]
+    westpac_accounts = {
+                            txt.ATMCO: 36022431156,
+                            txt.VENUE_SMART: 36022436029,
+                            txt.CASH_POINT: 36022444889
+                        }
+    error_company_names = [
+        txt.ATMCO,
+        txt.VENUE_SMART,
+        txt.CASH_POINT
+    ]
     def __init__(self):
-
         self._project_root = os.getcwd()
         self._new_statement_path =join(self._project_root,"AppData/Data.csv")
         self._appdata_path = join(self._project_root, "AppData")
@@ -50,7 +49,7 @@ class Statement:
     def _apply_fix_to_statement(self, instruction):
         error_company_number = instruction[txt.FIXES_HEADER_COMPANY_NAME]
         error_company_name = self.error_company_names[error_company_number]
-        error_account = self.westpac_accounts[error_company_name]
+        error_company_account = self.westpac_accounts[error_company_name]
         relevant_date = instruction[txt.FIXES_HEADER_DATE]
         error_type = instruction[txt.FIXES_HEADER_ERROR_TYPE]
         error_ref = instruction[txt.FIXES_HEADER_EXISTING_REF]
@@ -59,6 +58,7 @@ class Statement:
         inserted_ref = instruction[txt.FIXES_HEADER_INSERTED_REF]
         old_tid = instruction[txt.FIXES_HEADER_OLD_TID]
         new_tid = instruction[txt.FIXES_HEADER_NEW_TID]
+        error_item_number = instruction[txt.FIXES_HEADER_ITEM_NUMBER]
         #ERROR_TYPE(1=CHANGE_REFERENCE, 2=TID_CHANGE, 3=INSERT_NEW_TRANSACTION, 4=DELETE_ROW)
         if error_type == 1:
             self._change_description(error_company_account, error_ref, inserted_ref)
@@ -70,46 +70,55 @@ class Statement:
                                             relevant_date,
                                             inserted_credit_debit,
                                             inserted_amount,
-                                            inserted_ref
+                                            inserted_ref,
+                                            error_item_number
                                         )
         elif error_type == 4:
             self._delete_row(error_company_account, error_ref)
 
+    def _change_tid(old_tid, new_tid):
+        self._statement[txt.STATEMENT_HEADER_NARRATIVE] = self._statement[txt.STATEMENT_HEADER_NARRATIVE].apply(
+        lambda x: x.replace(old_tid, new_tid)
+        )
+
     def _delete_row(self, error_company_account, error_ref):
-        assert 1==len(
-                self.statement[
-                    (
-                        (self.statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-                        (self.statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
-                    )
-                ]
+        found_transactions_length = len(self._statement[
+            (
+                (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
+                (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
             )
-        self.statement = self.statement[
+        ])
+
+
+        self._statement = self._statement[
                     ~(
-                        (self.statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-                        (self.statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
+                        (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
+                        (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
                     )
                 ]
     def _change_description(self, error_company_account, error_ref, inserted_ref):
         assert 1==len(
-                self.statement[
+                self._statement[
                     (
-                        (self.statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-                        (self.statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
+                        (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
+                        (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
                     )
                 ]
             )
-        self.statement.loc[(
-            (self.statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-            (self.statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
+        self._statement.loc[(
+            (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
+            (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
         ),[txt.STATEMENT_HEADER_NARRATIVE]] = inserted_ref
     def _insert_new_transaction(self,
                                 error_company_account,
                                 relevant_date,
                                 inserted_credit_debit,
                                 inserted_amount,
-                                inserted_ref
+                                inserted_ref,
+                                error_item_number
+
                                 ):
+        inserted_ref = "FIX_ITEM_NUMBER_{} = {}".format(error_item_number, inserted_ref)
         data_row = [
                 error_company_account,
                 relevant_date,
