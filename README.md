@@ -37,22 +37,21 @@ Given the manual nature of this operation, errors abound and there is no way tha
 
 ## Reconciliation Algorithm
 
-1. Clean up the bank statement
+1. Clean up & fix the bank statement
 
 ```
-if there is a saved instruction of fixes file in AppData/
-  fixes_instruction = read data from pickle
-
-if there is a saved Data.csv in directory root
-  new_statement = read data from root directory
-
-all_cash_orders = get cash orders from AppData/
+read fixes_instructions from fixes_instructions.csv in AppData/, make all texts upper case
+read new_statement from Data.csv in AppData/, make all texts upper case
+read all_cash_orders from AppData/
 
 breakdown the bulk transactions in new_statement into individual cash orders
 with all_cash_orders
 
-uppercase every single character in new_statement
-apply fixes from fixes_instruction to the new_statement
+apply the fixes_instructions to new_statement
+
+
+
+
 ```
 
 2. Calculate the balance of each ATM
@@ -74,11 +73,11 @@ for each ATM_SOLUTIONS_COMPANY:
 | Column Name     | Data Type       |
 | ------------- |:-------------:|
 |ITEM_NUM|Int|
-|ATM_SOLUTIONS_COMPANY(1=ATMCO, 2=VENUE_SMART, 3=CASHPOINT|Int|
+|ATM_SOLUTIONS_COMPANY(0=ATMCO, 1=VENUE_SMART, 2=CASHPOINT|Int|
 |ERROR_DATE|Date(mm/dd/yyyy)|
 |ERROR_TYPE(1=CHANGE_DESCRIPTION, 2=TID_CHANGE, 3=INSERT_NEW_TRANSACTION, 4=DELETE_ROW)|Int|
 |EXISTING_REFERENCE|Text|
-|INSERTED_AMOUNT|Float|
+|AMOUNT|Float|
 |INSERTED_CREDIT_DEBIT (1=DEBIT, 2=CREDIT)|Int|
 |INSERTED_REFERENCE|Text|
 |OLD_TID|Text|

@@ -4,7 +4,7 @@ import pandas as pd
 import sys
 import os
 import numpy as np
-
+import csv
 project_dir = join(dirname('__file__'),"..")
 sys.path.insert(0,project_dir)
 
@@ -134,13 +134,82 @@ class Statement:
             )
         self._statement = self._statement.append(corrected_df, ignore_index=True)
 
+    def _get_bulk_transactions(self):
+        all_orders = [
+                        x[:-4] for x in os.listdir(self._appdata_path) \
+                            if len(x.split(".")[0]) == 10 or \
+                            (len(x.split(".")[0])==12 and "VS" in x)
+                    ]
+        return all_orders
+
+
+
+    def _read_bulk_transaction_file(self,company_account, csv_file_name, bulk_transactions_list):
+        csv_path = join(self._appdata_path, "{}.csv".format(csv_file_name))
+        date_str = csv_file_name[4:6]+"/"+csv_file_name[6:8]+"/"+csv_file_name[:4]
+        df = pd.read_csv(csv_path,names=
+                        [
+                            "BSB",
+                            "ACCOUNT",
+                            "NAME",
+                            "NOTE",
+                            "AMOUNT",
+                            "ATM_ID"
+                        ])
+        for ind, row in df.iterrows():
+            data_row = [
+                company_account,
+                date_str,
+                row["ATM_ID"].replace(u'\xa0',""),
+                row["AMOUNT"],
+                np.nan,
+                np.nan,
+                np.nan
+
+
+            ]
+
+            bulk_transactions_list.append(data_row)
+
+
+
+
+
+    def _break_down_bulk_transactions(self):
+        bulk_transactions = self._get_bulk_transactions()
+        bulk_transactions_list = []
+        for csv_file_name in bulk_transactions:
+            if "VS" in csv_file_name:
+                company_account = self.westpac_accounts[txt.VENUE_SMART]
+            else:
+                company_account = self.westpac_accounts[txt.ATMCO]
+            found_transaction = self._statement[(
+                (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==company_account)&\
+                (self._statement[txt.STATEMENT_HEADER_NARRATIVE].str.contains(csv_file_name))
+            )]
+
+            self._statement = self._statement[~(
+                (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==company_account)&\
+                (self._statement[txt.STATEMENT_HEADER_NARRATIVE].str.contains(csv_file_name))
+            )]
+            self._read_bulk_transaction_file(company_account,csv_file_name, bulk_transactions_list)
+        bulk_transactions_df =pd.DataFrame(bulk_transactions_list, columns=self._statement.columns)
+        self._statement = self._statement.append(bulk_transactions_df, ignore_index=True)
+
+
+
+
+
+
 
 
 
     def _fix(self):
         #Apply change-tid instructions only after other fixes are applied.
+
         if not self._cleaned:
             self._clean()
+        self._break_down_bulk_transactions()
         fixes_instructions = self._get_fixes_instructions()
 
         change_tid_instructions = fixes_instructions[
@@ -153,3 +222,4 @@ class Statement:
             self._apply_fix_to_statement(instruction)
         for index, instruction in change_tid_instructions.iterrows():
             self._apply_fix_to_statement(instruction)
+        self._statement.to_csv("test2.csv",index=False)
