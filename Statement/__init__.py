@@ -197,19 +197,13 @@ class Statement:
         self._statement = self._statement.append(bulk_transactions_df, ignore_index=True)
 
 
-
-
-
-
-
-
-
     def _fix(self):
         #Apply change-tid instructions only after other fixes are applied.
-
         if not self._cleaned:
             self._clean()
-        self._break_down_bulk_transactions()
+
+
+
         fixes_instructions = self._get_fixes_instructions()
 
         change_tid_instructions = fixes_instructions[
@@ -222,4 +216,5 @@ class Statement:
             self._apply_fix_to_statement(instruction)
         for index, instruction in change_tid_instructions.iterrows():
             self._apply_fix_to_statement(instruction)
-        self._statement.to_csv("test2.csv",index=False)
+            
+        self._fixed = True
