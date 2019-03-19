@@ -74,7 +74,21 @@ class Statement:
                                         )
         elif error_type == 4:
             self._delete_row(error_company_account, error_ref)
-
+    def _delete_row(self, error_company_account, error_ref):
+        assert 1==len(
+                self.statement[
+                                (
+                                    (self.statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
+                                    (self.statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
+                                )
+                                ]
+            )
+        self.statement = self.statement[
+                                ~(
+                                    (self.statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
+                                    (self.statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
+                                )
+                                ]
     def _fix(self):
         #Apply change-tid instructions only after other fixes are applied.
         if not self._cleaned:
