@@ -5,6 +5,7 @@ import sys
 import os
 import numpy as np
 import csv
+import datetime
 project_dir = join(dirname('__file__'),"..")
 sys.path.insert(0,project_dir)
 
@@ -44,6 +45,12 @@ class Statement:
             for column in df.columns:
                 if df[column].dtype == np.dtype(np.object):
                     df[column] = df[column].str.upper()
+            df[txt.STATEMENT_HEADER_DATE] = df[txt.STATEMENT_HEADER_DATE].apply(
+                                                                                lambda x: datetime.datetime.strftime(
+                                                                                        datetime.datetime.strptime(x,"%d/%m/%Y"),
+                                                                                        "%m/%d/%y"
+                                                                                        )
+                                                                                )
             self._statement = df
             self._cleaned = True
             return
@@ -62,7 +69,7 @@ class Statement:
         error_item_number = instruction[txt.FIXES_HEADER_ITEM_NUMBER]
         #ERROR_TYPE(1=CHANGE_REFERENCE, 2=TID_CHANGE, 3=INSERT_NEW_TRANSACTION, 4=DELETE_ROW)
         if error_type == 1:
-            self._change_description(error_company_account, error_ref, inserted_ref)
+            self._change_description(error_company_account, error_ref, inserted_ref, relevant_date)
         elif error_type == 2:
             self._change_tid(old_tid, new_tid)
         elif error_type == 3:
@@ -75,40 +82,55 @@ class Statement:
                                             error_item_number
                                         )
         elif error_type == 4:
-            self._delete_row(error_company_account, error_ref)
+            self._delete_row(error_company_account, error_ref, relevant_date)
 
     def _change_tid(old_tid, new_tid):
         self._statement[txt.STATEMENT_HEADER_NARRATIVE] = self._statement[txt.STATEMENT_HEADER_NARRATIVE].apply(
         lambda x: x.replace(old_tid, new_tid)
         )
 
-    def _delete_row(self, error_company_account, error_ref):
+    def _delete_row(self, error_company_account, error_ref, relevant_date):
+
         found_transactions_length = len(self._statement[
             (
                 (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-                (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
+                (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)&\
+                (self._statement[txt.STATEMENT_HEADER_DATE] == relevant_date)
             )
         ])
-
-
+        assert found_transactions_length != 0
         self._statement = self._statement[
                     ~(
                         (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-                        (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
+                        (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)&\
+                        (self._statement[txt.STATEMENT_HEADER_DATE] == relevant_date)
                     )
                 ]
-    def _change_description(self, error_company_account, error_ref, inserted_ref):
+    def _change_description(self, error_company_account, error_ref, inserted_ref, relevant_date):
+
+        print(error_company_account, relevant_date, error_ref)
+        stuff = self._statement[
+            (
+                (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
+                (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)&\
+                (self._statement[txt.STATEMENT_HEADER_DATE] == relevant_date)
+            )
+        ]
+        print(len(stuff))
+        print(stuff)
         assert 1==len(
                 self._statement[
                     (
                         (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-                        (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
+                        (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)&\
+                        (self._statement[txt.STATEMENT_HEADER_DATE] == relevant_date)
                     )
                 ]
             )
         self._statement.loc[(
             (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-            (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)
+            (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)&\
+            (self._statement[txt.STATEMENT_HEADER_DATE] == relevant_date)
         ),[txt.STATEMENT_HEADER_NARRATIVE]] = inserted_ref
     def _insert_new_transaction(self,
                                 error_company_account,
@@ -207,7 +229,7 @@ class Statement:
         self._remove_bulk_transactions_from_statement()
         bulk_transactions_df = self._get_bulk_transactions_dataframe()
         self._statement = self._statement.append(bulk_transactions_df, ignore_index=True)
-
+        self._statement.to_csv("test.csv",index=False)
 
     def _fix(self):
         #Apply change-tid instructions only after other fixes are applied.
