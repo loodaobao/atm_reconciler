@@ -5,6 +5,7 @@ import sys
 import os
 import numpy as np
 import csv
+import re
 import datetime
 project_dir = join(dirname('__file__'),"..")
 sys.path.insert(0,project_dir)
@@ -23,10 +24,12 @@ class Statement:
         txt.CASH_POINT
     ]
     def __init__(self, recompile_bulk_transactions = False):
+
         self._project_root = os.getcwd()
         self._new_statement_path =join(self._project_root,"AppData/Data.csv")
         self._appdata_path = join(self._project_root, "AppData")
         self._fixes_instruction_path = join(self._project_root,"AppData/fixes.csv")
+        self._bulk_transaction_pickle_path = join(self._appdata_path,"bulk_transaction.pickle")
         self._statement = None
         self._cleaned = False
         self._fixed = False
@@ -48,10 +51,13 @@ class Statement:
             df[txt.STATEMENT_HEADER_DATE] = df[txt.STATEMENT_HEADER_DATE].apply(
                                                                                 lambda x: datetime.datetime.strftime(
                                                                                         datetime.datetime.strptime(x,"%d/%m/%Y"),
-                                                                                        "%m/%d/%y"
+                                                                                        "%m/%d/%Y"
                                                                                         )
                                                                                 )
+
+
             self._statement = df
+
             self._cleaned = True
             return
     def _apply_fix_to_statement(self, instruction):
@@ -90,48 +96,23 @@ class Statement:
         )
 
     def _delete_row(self, error_company_account, error_ref, relevant_date):
-
-        found_transactions_length = len(self._statement[
-            (
-                (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-                (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)&\
-                (self._statement[txt.STATEMENT_HEADER_DATE] == relevant_date)
-            )
-        ])
-        assert found_transactions_length != 0
-        self._statement = self._statement[
-                    ~(
-                        (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-                        (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)&\
-                        (self._statement[txt.STATEMENT_HEADER_DATE] == relevant_date)
-                    )
-                ]
-    def _change_description(self, error_company_account, error_ref, inserted_ref, relevant_date):
-
-        print(error_company_account, relevant_date, error_ref)
-        stuff = self._statement[
-            (
-                (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-                (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)&\
-                (self._statement[txt.STATEMENT_HEADER_DATE] == relevant_date)
-            )
-        ]
-        print(len(stuff))
-        print(stuff)
-        assert 1==len(
-                self._statement[
-                    (
-                        (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
-                        (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)&\
-                        (self._statement[txt.STATEMENT_HEADER_DATE] == relevant_date)
-                    )
-                ]
-            )
-        self._statement.loc[(
+        filter = (
             (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
             (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)&\
             (self._statement[txt.STATEMENT_HEADER_DATE] == relevant_date)
-        ),[txt.STATEMENT_HEADER_NARRATIVE]] = inserted_ref
+        )
+        found_transactions_length = len(self._statement[filter])
+        assert found_transactions_length != 0
+        self._statement = self._statement[~filter]
+    def _change_description(self, error_company_account, error_ref, inserted_ref, relevant_date):
+        filter = (
+            (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\
+            (self._statement[txt.STATEMENT_HEADER_NARRATIVE] == error_ref)&\
+            (self._statement[txt.STATEMENT_HEADER_DATE] == relevant_date)
+        )
+
+        assert 1==len(self._statement[filter])
+        self._statement.loc[filter,[txt.STATEMENT_HEADER_NARRATIVE]] = inserted_ref
     def _insert_new_transaction(self,
                                 error_company_account,
                                 relevant_date,
@@ -202,27 +183,67 @@ class Statement:
 
     def _get_bulk_transactions_dataframe(self):
         bulk_transactions_file_names = self._get_bulk_transactions_file_names()
-        bulk_transactions_list = []
-        for file_name in bulk_transactions_file_names:
-            if "VS" in file_name:
-                company_account = self.westpac_accounts[txt.VENUE_SMART]
+        if self._recompile_bulk_transactions:
+            print("recompiling bulk")
+
+            bulk_transactions_list = []
+            for file_name in bulk_transactions_file_names:
+                if "VS" in file_name:
+                    company_account = self.westpac_accounts[txt.VENUE_SMART]
+                else:
+                    company_account = self.westpac_accounts[txt.ATMCO]
+                self._read_bulk_transaction_file(company_account, file_name, bulk_transactions_list)
+
+        else:
+            print("using pickle...")
+            if not os.path.isfile(self._bulk_transaction_pickle_path):
+                print("pickle of bulk trans doesn't exist")
+                self._recompile_bulk_transactions = True
+                return self._get_bulk_transactions_dataframe()
             else:
-                company_account = self.westpac_accounts[txt.ATMCO]
-            self._read_bulk_transaction_file(company_account, file_name, bulk_transactions_list)
+                infile = open(self._bulk_transaction_pickle_path,'rb')
+                pickle_object = pickle.load(infile)
+                infile.close()
+                pickle_date = pickle_object["date"]
+                bulk_transactions_list = pickle_object["data_list"]
+                needed_file_names = [
+                    x for x in bulk_transactions_file_names if datetime.datetime.strptime(x[:8], "%Y%m%d")>=pickle_date
+                ]
+                print("needed_file_count = {}".format(len(needed_file_names)))
+                for file_name in needed_file_names:
+                    if "VS" in file_name:
+                        company_account = self.westpac_accounts[txt.VENUE_SMART]
+                    else:
+                        company_account = self.westpac_accounts[txt.ATMCO]
+                    self._read_bulk_transaction_file(company_account, file_name, bulk_transactions_list)
         bulk_transactions_df =pd.DataFrame(bulk_transactions_list, columns=self._statement.columns)
+        pickled_object = {"date":datetime.datetime.today(), "data_list":bulk_transactions_list}
+        outfile = open(self._bulk_transaction_pickle_path,'wb')
+        pickle.dump(pickled_object, outfile)
+        outfile.close()
         return bulk_transactions_df
 
+
+
+
+
+
+
     def _remove_bulk_transactions_from_statement(self):
-        bulk_transactions_file_names = self._get_bulk_transactions_file_names()
-        for file_name in bulk_transactions_file_names:
-            if "VS" in file_name:
-                company_account = self.westpac_accounts[txt.VENUE_SMART]
-            else:
-                company_account = self.westpac_accounts[txt.ATMCO]
-            self._statement = self._statement[~(
-                (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==company_account)&\
-                (self._statement[txt.STATEMENT_HEADER_NARRATIVE].str.contains(file_name))
-            )]
+        # bulk_transactions_file_names = self._get_bulk_transactions_file_names()
+        #([12]\d{3}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(0[1-9]|[12]\d|3[01])([V][S]))
+        #([12]\d{3}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(0[1-9]|[12]\d|3[01]))
+        atmco_regex = "([12]\d{3}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(0[1-9]|[12]\d|3[01]))"
+        vs_regex = "([12]\d{3}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(0[1-9]|[12]\d|3[01])([V][S]))"
+
+
+        self._statement = self._statement[~(
+            (self._statement[txt.STATEMENT_HEADER_NARRATIVE].str.contains(atmco_regex)) |\
+            (self._statement[txt.STATEMENT_HEADER_NARRATIVE].str.contains(vs_regex))
+            )
+        ]
+        self._statement.to_csv("st_with_bulk_removed")
+
 
 
     def _break_down_bulk_transactions(self):
