@@ -14,4 +14,8 @@ def test_fix():
     fixed_credits = statement._statement[txt.STATEMENT_HEADER_CREDIT].sum()
     fixed_debits = statement._statement[txt.STATEMENT_HEADER_DEBIT].sum()
     assert fixed_credits - fixed_debits == old_credits - old_debits
-    
+
+def test_get_bulk_transactions():
+    statement = Statement()
+    balks = statement._get_bulk_transactions_file_names()
+    print(balks)
