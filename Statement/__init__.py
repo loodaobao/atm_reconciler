@@ -92,7 +92,6 @@ class Statement:
             self._delete_row(error_company_account, error_ref, relevant_date)
 
     def _change_tid(self,old_tid, new_tid):
-        
         self._statement[txt.STATEMENT_HEADER_NARRATIVE] = self._statement[txt.STATEMENT_HEADER_NARRATIVE].replace(old_tid, new_tid)
 
     def _delete_row(self, error_company_account, error_ref, relevant_date):
@@ -273,3 +272,9 @@ class Statement:
             self._apply_fix_to_statement(instruction)
 
         self._fixed = True
+    def get_company(self, company_name):
+        if self._fixed:
+            return self._statement[self._statement[txt.STATEMENT_HEADER_ACCOUNT]==self.westpac_accounts[company_name]]
+        else:
+            self._fix()
+            return self._get_statement()
