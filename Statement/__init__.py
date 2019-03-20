@@ -39,6 +39,7 @@ class Statement:
         for column in df.columns:
             if df[column].dtype == np.dtype(np.object):
                 df[column] = df[column].str.upper()
+
         return df
     def _clean(self):
         if self._cleaned:
@@ -90,10 +91,9 @@ class Statement:
         elif error_type == 4:
             self._delete_row(error_company_account, error_ref, relevant_date)
 
-    def _change_tid(old_tid, new_tid):
-        self._statement[txt.STATEMENT_HEADER_NARRATIVE] = self._statement[txt.STATEMENT_HEADER_NARRATIVE].apply(
-        lambda x: x.replace(old_tid, new_tid)
-        )
+    def _change_tid(self,old_tid, new_tid):
+        
+        self._statement[txt.STATEMENT_HEADER_NARRATIVE] = self._statement[txt.STATEMENT_HEADER_NARRATIVE].replace(old_tid, new_tid)
 
     def _delete_row(self, error_company_account, error_ref, relevant_date):
         filter = (
