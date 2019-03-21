@@ -92,7 +92,9 @@ class Statement:
             self._delete_row(error_company_account, error_ref, relevant_date)
 
     def _change_tid(self,old_tid, new_tid):
-        self._statement[txt.STATEMENT_HEADER_NARRATIVE] = self._statement[txt.STATEMENT_HEADER_NARRATIVE].replace(old_tid, new_tid)
+        old_tid = "".join(["[{}]".format(x) for x in old_tid])
+        old_tid = "({})".format(old_tid)
+        self._statement[txt.STATEMENT_HEADER_NARRATIVE] = self._statement[txt.STATEMENT_HEADER_NARRATIVE].replace(old_tid, new_tid, regex=True)
 
     def _delete_row(self, error_company_account, error_ref, relevant_date):
         filter = (
@@ -244,21 +246,12 @@ class Statement:
         ]
 
 
-
-
     def _break_down_bulk_transactions(self):
         self._remove_bulk_transactions_from_statement()
         bulk_transactions_df = self._get_bulk_transactions_dataframe()
         self._statement = self._statement.append(bulk_transactions_df, ignore_index=True)
 
-
-    def _fix(self):
-        #Apply change-tid instructions only after other fixes are applied.
-        if not self._cleaned:
-            self._clean()
-
-
-
+    def _execute_fix_instructions(self):
         fixes_instructions = self._get_fixes_instructions()
 
         change_tid_instructions = fixes_instructions[
@@ -272,16 +265,29 @@ class Statement:
         for index, instruction in change_tid_instructions.iterrows():
             self._apply_fix_to_statement(instruction)
 
+    def _fix(self):
+        #Apply change-tid instructions only after other fixes are applied.
+        if not self._cleaned:
+            self._clean()
+        self._execute_fix_instructions()
         self._extract_tids()
+        self._check_not_funded_tids()
         self._statement.to_csv("test.csv",index=False)
         self._fixed = True
-    def get_company(self, company_name):
-        return self._statement[self._statement[txt.STATEMENT_HEADER_ACCOUNT]==self.westpac_accounts[company_name]]
+
+    def get_statement(self, company_name = None):
+        if company_name == None:
+                return self._statement
+        else:
+            return self._statement[self._statement[txt.STATEMENT_HEADER_ACCOUNT]==self.westpac_accounts[company_name]]
 
     def _extract_tids(self):
         regex = "([0-9][A-Z][0-9][0-9][0-9][0-9][0-9][A-Z])|([0][0][0][0-9][0-9][0-9][0-9][0-9])|([0-9][0-9][0-9][P][0-9][0-9][0-9][0-9])"
         regex_result =  self._statement[txt.STATEMENT_HEADER_NARRATIVE].str.extract(regex)
         regex_result.fillna("",inplace= True)
         self._statement[txt.STATEMENT_HEADER_TID] = regex_result[0] + regex_result[1] + regex_result[2]
-    def get_all_funded_tids(self):
+    def _check_not_funded_tids(self):
+        funded_tids = self._get_all_funded_tids()
+        self._statement[txt.STATEMENT_HEADER_FUNDED] = self._statement[txt.STATEMENT_HEADER_TID].isin(funded_tids)
+    def _get_all_funded_tids(self):
         return self._statement[self._statement[txt.STATEMENT_HEADER_DEBIT] != 0][txt.STATEMENT_HEADER_TID].tolist()
