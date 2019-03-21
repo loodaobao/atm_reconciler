@@ -23,6 +23,6 @@ class Reconciler():
             balance = relevant_transactions[txt.STATEMENT_HEADER_DEBIT].sum() - relevant_transactions[txt.STATEMENT_HEADER_CREDIT].sum()
             return balance
         else:
-            grouped_statement_by_tid  = self.statement.groupby(txt.STATEMENT_HEADER_TID)
+            grouped_statement_by_tid  = self.statement.groupby([txt.STATEMENT_HEADER_TID])
             balance_df = grouped_statement_by_tid[txt.STATEMENT_HEADER_DEBIT].sum() -  grouped_statement_by_tid[txt.STATEMENT_HEADER_CREDIT].sum()
             return balance_df

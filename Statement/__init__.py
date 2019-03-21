@@ -272,14 +272,23 @@ class Statement:
         self._execute_fix_instructions()
         self._extract_tids()
         self._check_not_funded_tids()
+        self._statement[txt.STATEMENT_HEADER_DATE] = pd.to_datetime(self._statement[txt.STATEMENT_HEADER_DATE])
+        self._statement.sort_values(txt.STATEMENT_HEADER_DATE, inplace=True)
         self._statement.to_csv("test.csv",index=False)
         self._fixed = True
+    def setup(self):
+        self._clean()
+        self._break_down_bulk_transactions()
+        self._fix()
 
-    def get_statement(self, company_name = None):
+    def get_statement_by_company_name(self, company_name = None):
         if company_name == None:
                 return self._statement
         else:
             return self._statement[self._statement[txt.STATEMENT_HEADER_ACCOUNT]==self.westpac_accounts[company_name]]
+    def get_statement_by_tid(self, tid):
+        return self._statement[self._statement[txt.STATEMENT_HEADER_TID]==tid]
+
 
     def _extract_tids(self):
         regex = "([0-9][A-Z][0-9][0-9][0-9][0-9][0-9][A-Z])|([0][0][0][0-9][0-9][0-9][0-9][0-9])|([0-9][0-9][0-9][P][0-9][0-9][0-9][0-9])"

@@ -1,4 +1,5 @@
 from Reconciler import Reconciler
+from ATM import ATM
 from Statement import Statement
 import pickle
 import os
@@ -29,13 +30,13 @@ def test_fixing_maintains_balances(timing,statement):
     starting_balance = (fixed_credits - fixed_debits)  - (old_credits - old_debits)
     assert starting_balance == 3000000
 
-def test_get_statement(timing, statement):
-    atmco_statement = statement.get_statement(txt.ATMCO)
+def test_get_statement_by_company_name(timing, statement):
+    atmco_statement = statement.get_statement_by_company_name(txt.ATMCO)
     unique_accounts = atmco_statement[txt.STATEMENT_HEADER_ACCOUNT].unique()
     assert unique_accounts[0] == statement.westpac_accounts[txt.ATMCO]
 
 def test_vs_oustanding_events(timing, statement):
-    vs = statement.get_statement(txt.VENUE_SMART)
+    vs = statement.get_statement_by_company_name(txt.VENUE_SMART)
     vs_non_atm = vs[vs[txt.STATEMENT_HEADER_TID]==""]
     vs_non_facility = vs_non_atm[~(vs_non_atm[txt.STATEMENT_HEADER_NARRATIVE].str.contains("TRACK_FACILITY"))]
     vs_event = vs_non_facility[vs_non_facility[txt.STATEMENT_HEADER_NARRATIVE].str.contains("TRACK_EVENT_")]
@@ -46,7 +47,7 @@ def test_vs_oustanding_events(timing, statement):
 
 @pytest.mark.xfail
 def test_atmco_non_atm_balance(timing, statement):
-    atmco =statement.get_statement(txt.ATMCO)
+    atmco =statement.get_statement_by_company_name(txt.ATMCO)
     non_atm = atmco[atmco[txt.STATEMENT_HEADER_TID]==""]
     total_facility_limit = non_atm[(non_atm[txt.STATEMENT_HEADER_NARRATIVE].str.contains("TRACK_FACILITY"))][txt.STATEMENT_HEADER_CREDIT].sum()-\
     non_atm[(non_atm[txt.STATEMENT_HEADER_NARRATIVE].str.contains("FACILITY"))][txt.STATEMENT_HEADER_DEBIT].sum()
@@ -57,8 +58,3 @@ def test_atmco_non_atm_balance(timing, statement):
 def test_not_funded_tids(timing, statement):
     not_funded = statement._statement[statement._statement[txt.STATEMENT_HEADER_FUNDED]==False]
     assert len(not_funded) == 0
-
-def test_reconciler(timing, statement):
-    reco =Reconciler(statement)
-    df = reco.get_balance()
-    df.to_csv("balance.csv")
