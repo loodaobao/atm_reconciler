@@ -128,8 +128,8 @@ class Statement:
                 error_company_account,
                 relevant_date,
                 inserted_ref,
-                inserted_amount if inserted_credit_debit == 1 else 0,
-                inserted_amount if inserted_credit_debit == 2 else 0,
+                inserted_amount if inserted_credit_debit == 1 else np.nan,
+                inserted_amount if inserted_credit_debit == 2 else np.nan,
                 np.nan,
                 np.nan
             ]
@@ -299,4 +299,4 @@ class Statement:
         funded_tids = self._get_all_funded_tids()
         self._statement[txt.STATEMENT_HEADER_FUNDED] = self._statement[txt.STATEMENT_HEADER_TID].isin(funded_tids)
     def _get_all_funded_tids(self):
-        return self._statement[self._statement[txt.STATEMENT_HEADER_DEBIT] != 0][txt.STATEMENT_HEADER_TID].tolist()
+        return self._statement[~self._statement[txt.STATEMENT_HEADER_DEBIT].isnull()][txt.STATEMENT_HEADER_TID].unique().tolist()

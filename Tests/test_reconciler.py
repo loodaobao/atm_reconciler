@@ -1,4 +1,18 @@
-def test_reconciler(timing, statement):
-    reco =Reconciler(statement)
-    df = reco.get_balance()
-    df.to_csv("balance.csv")
+from Reconciler import Reconciler
+from ATM import ATM
+from Statement import Statement
+import pickle
+import os
+import Texts as txt
+import datetime
+import pytest
+
+@pytest.fixture(scope= "session")
+def statement():
+    st = Statement(recompile_bulk_transactions = False)
+    st.setup()
+    yield st
+
+def test_identify_idle_tids(statement):
+    reco = Reconciler(statement)
+    reco.identify_idle_tids()

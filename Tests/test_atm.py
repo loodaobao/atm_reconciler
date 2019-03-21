@@ -27,4 +27,5 @@ def test_atm_get_last_inflow_date(statement):
 def test_atm_get_days_to_last_inflow(statement):
     tid = "00081907"
     atm = ATM(tid, statement.get_statement_by_tid(tid))
-    print(atm.get_days_to_last_inflow())
+    assert atm.get_days_to_last_inflow() == 224
+    
