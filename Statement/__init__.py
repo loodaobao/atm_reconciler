@@ -201,14 +201,15 @@ class Statement:
                 return self._get_bulk_transactions_dataframe()
             else:
                 infile = open(self._bulk_transaction_pickle_path,'rb')
-                pickle_object = pickle.load(infile)
+                bulk_transactions_list = pickle.load(infile)
                 infile.close()
-                pickle_date = pickle_object["date"]
-                bulk_transactions_list = pickle_object["data_list"]
+                last_update_date = datetime.datetime.strptime(bulk_transactions_list[-1][1],"%m/%d/%Y")
+                print("last_entry date = {}".format(last_update_date))
                 needed_file_names = [
-                    x for x in bulk_transactions_file_names if datetime.datetime.strptime(x[:8], "%Y%m%d")>=pickle_date
+                    x for x in bulk_transactions_file_names if datetime.datetime.strptime(x[:8], "%Y%m%d")>last_update_date
                 ]
                 print("needed_file_count = {}".format(len(needed_file_names)))
+                print(needed_file_names)
                 for file_name in needed_file_names:
                     if "VS" in file_name:
                         company_account = self.westpac_accounts[txt.VENUE_SMART]
@@ -216,10 +217,10 @@ class Statement:
                         company_account = self.westpac_accounts[txt.ATMCO]
                     self._read_bulk_transaction_file(company_account, file_name, bulk_transactions_list)
         bulk_transactions_df =pd.DataFrame(bulk_transactions_list, columns=self._statement.columns)
-        pickled_object = {"date":datetime.datetime.today(), "data_list":bulk_transactions_list}
         outfile = open(self._bulk_transaction_pickle_path,'wb')
-        pickle.dump(pickled_object, outfile)
+        pickle.dump(bulk_transactions_list, outfile)
         outfile.close()
+        bulk_transactions_df.to_csv("bulk.csv",index=False)
         return bulk_transactions_df
 
 
@@ -241,7 +242,7 @@ class Statement:
             (self._statement[txt.STATEMENT_HEADER_NARRATIVE].str.contains(vs_regex))
             )
         ]
-        self._statement.to_csv("st_with_bulk_removed")
+
 
 
 
@@ -249,7 +250,7 @@ class Statement:
         self._remove_bulk_transactions_from_statement()
         bulk_transactions_df = self._get_bulk_transactions_dataframe()
         self._statement = self._statement.append(bulk_transactions_df, ignore_index=True)
-        self._statement.to_csv("test.csv",index=False)
+
 
     def _fix(self):
         #Apply change-tid instructions only after other fixes are applied.
@@ -277,4 +278,4 @@ class Statement:
             return self._statement[self._statement[txt.STATEMENT_HEADER_ACCOUNT]==self.westpac_accounts[company_name]]
         else:
             self._fix()
-            return self._get_statement()
+            return self.get_company(company_name)

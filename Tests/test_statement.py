@@ -25,10 +25,10 @@ def test_fix(timing,statement):
     statement._fix()
     fixed_credits = statement._statement[txt.STATEMENT_HEADER_CREDIT].sum()
     fixed_debits = statement._statement[txt.STATEMENT_HEADER_DEBIT].sum()
-    assert fixed_credits - fixed_debits == old_credits - old_debits
+    starting_balance = (fixed_credits - fixed_debits)  - (old_credits - old_debits)
+    assert starting_balance == 3000000
 
 def test_get_company(timing, statement):
     atmco_statement = statement.get_company(txt.ATMCO)
     unique_accounts = atmco_statement[txt.STATEMENT_HEADER_ACCOUNT].unique()
-    assert 1 == len(unique_accounts)
-    assert statement.westpac_accounts[txt.ATMCO] == unique_accounts[0]
+    assert unique_accounts[0] == statement.westpac_accounts[txt.ATMCO]
