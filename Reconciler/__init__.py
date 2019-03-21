@@ -15,6 +15,7 @@ class Reconciler(ABC):
                             txt.VENUE_SMART: 36022436029,
                             txt.CASH_POINT: 36022444889
                         }
-    def __init__(self, company_name):
+    def __init__(self, statement):
         self.company_name = company_name
         self.account = self.westpac_accounts[company_name]
+        self.statement = statement

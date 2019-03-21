@@ -1,8 +1,7 @@
 # ignore AppData folder content
 AppData/*
 *.csv
-
-
+*.xlsx
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

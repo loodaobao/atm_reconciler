@@ -272,10 +272,16 @@ class Statement:
         for index, instruction in change_tid_instructions.iterrows():
             self._apply_fix_to_statement(instruction)
 
+        self._extract_tids()
+        self._statement.to_csv("test.csv",index=False)
         self._fixed = True
     def get_company(self, company_name):
-        if self._fixed:
-            return self._statement[self._statement[txt.STATEMENT_HEADER_ACCOUNT]==self.westpac_accounts[company_name]]
-        else:
-            self._fix()
-            return self.get_company(company_name)
+        return self._statement[self._statement[txt.STATEMENT_HEADER_ACCOUNT]==self.westpac_accounts[company_name]]
+
+    def _extract_tids(self):
+        regex = "([0-9][A-Z][0-9][0-9][0-9][0-9][0-9][A-Z])|([0][0][0][0-9][0-9][0-9][0-9][0-9])|([0-9][0-9][0-9][P][0-9][0-9][0-9][0-9])"
+        regex_result =  self._statement[txt.STATEMENT_HEADER_NARRATIVE].str.extract(regex)
+        regex_result.fillna("",inplace= True)
+        self._statement[txt.STATEMENT_HEADER_TID] = regex_result[0] + regex_result[1] + regex_result[2]
+    def get_all_funded_tids(self):
+        return self._statement[self._statement[txt.STATEMENT_HEADER_DEBIT] != 0][txt.STATEMENT_HEADER_TID].tolist()
