@@ -78,7 +78,7 @@ class Statement:
         if error_type == 1:
             self._change_description(error_company_account, error_ref, inserted_ref, relevant_date)
         elif error_type == 2:
-            self._change_tid(old_tid, new_tid)
+            self._change_tid(old_tid, new_tid, relevant_date)
         elif error_type == 3:
             self._insert_new_transaction(
                                             error_company_account,
@@ -91,11 +91,12 @@ class Statement:
         elif error_type == 4:
             self._delete_row(error_company_account, error_ref, relevant_date)
 
-    def _change_tid(self,old_tid, new_tid):
-        old_tid = "".join(["[{}]".format(x) for x in old_tid])
-        old_tid = "({})".format(old_tid)
-        self._statement[txt.STATEMENT_HEADER_NARRATIVE] = self._statement[txt.STATEMENT_HEADER_NARRATIVE].replace(old_tid, new_tid, regex=True)
-
+    def _change_tid(self,old_tid, new_tid, threshold_date):
+        old_tid_re = "".join(["[{}]".format(x) for x in old_tid])
+        old_tid_re = "({})".format(old_tid_re)
+        filter = (self._statement[txt.STATEMENT_HEADER_NARRATIVE].str.contains(old_tid)) & (self._statement[txt.STATEMENT_HEADER_DATE]<=threshold_date)
+        changed_narratives = self._statement.loc[filter,[txt.STATEMENT_HEADER_NARRATIVE]].replace(old_tid_re, new_tid, regex=True)
+        self._statement.loc[filter,[txt.STATEMENT_HEADER_NARRATIVE]] = changed_narratives
     def _delete_row(self, error_company_account, error_ref, relevant_date):
         filter = (
             (self._statement[txt.STATEMENT_HEADER_ACCOUNT]==error_company_account) &\

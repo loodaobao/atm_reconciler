@@ -35,6 +35,9 @@ This function gives the funding entity a cash-flow based balance of each ATM. Ho
 
 Given the manual nature of this operation, errors abound and there is no way that a funding entity can know whether an error has indeed occurred. The reconciliation process only gives the funding entity a rough idea of how much is in the machine and with daily monitoring, it can identify potential faults when the balance based on cash flows shown on the bank statement is abnormally large or small.
 
+
+
+
 ## Reconciliation Algorithm
 
 1. Clean up & fix the bank statement
@@ -48,9 +51,6 @@ breakdown the bulk transactions in new_statement into individual cash orders
 with all_cash_orders
 
 apply the fixes_instructions to new_statement
-
-
-
 
 ```
 
@@ -67,6 +67,27 @@ for each ATM_SOLUTIONS_COMPANY:
         BALANCE_IN_MACHINE = TOTAL_CASH_ORDERS - TOTAL_CASH_RETURNS
 
 ```
+
+## Reconciliation Issues - 1
+
+* ATM solutions companies oftentimes would notify the funding entity of changing ATM references, which means withdrawing the money from one machine and moving the money to another machine of their choice.
+
+* To associate all the transactions of the old reference in the past with the new reference, I initially used bulk replace method: before reconciling, replace every text in the statement that matches the old reference with the new reference.
+
+* This method failed because I could not identify any erroneous cash inflows tagged with the old reference. I also would not know if the ATM solutions company sent a new order of the old reference after the change-date.
+
+* Solution: only replace the descriptions of transactions that happened before a threshold date (the day when notified of such change) so that any incoming transactions tagged with the old ATM reference would be identified as "not funded"
+
+## Reconciliation Issues - 2
+
+* By checking the cash outflows and cash inflows themselves, one cannot identify whether a machine has been idle for an excessive number of days. One machine might have balances that look perfectly normal but was shut down or stolen without notice.
+
+* Build another piece of verification process to check if any machine has been idle for >= 15 days
+
+
+---
+
+
 
 ## /AppData/fixes.csv Specs
 
