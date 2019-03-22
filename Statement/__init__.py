@@ -39,7 +39,7 @@ class Statement:
         for column in df.columns:
             if df[column].dtype == np.dtype(np.object):
                 df[column] = df[column].str.upper()
-
+        df[txt.FIXES_HEADER_DATE] = pd.to_datetime(df[txt.FIXES_HEADER_DATE])
         return df
     def _clean(self):
         if self._cleaned:
@@ -58,7 +58,7 @@ class Statement:
 
 
             self._statement = df
-
+            self._statement[txt.STATEMENT_HEADER_DATE] = pd.to_datetime(self._statement[txt.STATEMENT_HEADER_DATE])
             self._cleaned = True
             return
     def _apply_fix_to_statement(self, instruction):
@@ -211,7 +211,7 @@ class Statement:
                     x for x in bulk_transactions_file_names if datetime.datetime.strptime(x[:8], "%Y%m%d")>last_update_date
                 ]
                 print("needed_file_count = {}".format(len(needed_file_names)))
-                print(needed_file_names)
+
                 for file_name in needed_file_names:
                     if "VS" in file_name:
                         company_account = self.westpac_accounts[txt.VENUE_SMART]
@@ -222,7 +222,9 @@ class Statement:
         outfile = open(self._bulk_transaction_pickle_path,'wb')
         pickle.dump(bulk_transactions_list, outfile)
         outfile.close()
+        bulk_transactions_df[txt.STATEMENT_HEADER_DATE] = pd.to_datetime(bulk_transactions_df[txt.STATEMENT_HEADER_DATE])
         bulk_transactions_df.to_csv("bulk.csv",index=False)
+
         return bulk_transactions_df
 
 
@@ -249,6 +251,7 @@ class Statement:
     def _break_down_bulk_transactions(self):
         self._remove_bulk_transactions_from_statement()
         bulk_transactions_df = self._get_bulk_transactions_dataframe()
+
         self._statement = self._statement.append(bulk_transactions_df, ignore_index=True)
 
     def _execute_fix_instructions(self):
@@ -272,7 +275,7 @@ class Statement:
         self._execute_fix_instructions()
         self._extract_tids()
         self._check_not_funded_tids()
-        self._statement[txt.STATEMENT_HEADER_DATE] = pd.to_datetime(self._statement[txt.STATEMENT_HEADER_DATE])
+
         self._statement.sort_values(txt.STATEMENT_HEADER_DATE, inplace=True)
         self._statement.to_csv("test.csv",index=False)
         self._fixed = True

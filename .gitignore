@@ -6,10 +6,10 @@ AppData/*
 __pycache__/
 *.py[cod]
 *$py.class
-
+notes.md
 # C extensions
 *.so
-
+*.ipynb
 # Distribution / packaging
 .Python
 build/

@@ -23,8 +23,7 @@ def test_fixing_maintains_balances(timing,statement):
     statement._clean()
     old_credits = statement._statement[txt.STATEMENT_HEADER_CREDIT].sum()
     old_debits = statement._statement[txt.STATEMENT_HEADER_DEBIT].sum()
-    statement._break_down_bulk_transactions()
-    statement._fix()
+    statement.setup()
     fixed_credits = statement._statement[txt.STATEMENT_HEADER_CREDIT].sum()
     fixed_debits = statement._statement[txt.STATEMENT_HEADER_DEBIT].sum()
     starting_balance = (fixed_credits - fixed_debits)  - (old_credits - old_debits)
@@ -56,5 +55,6 @@ def test_atmco_non_atm_balance(timing, statement):
     assert non_atm[txt.STATEMENT_HEADER_CREDIT].sum()-non_atm[txt.STATEMENT_HEADER_DEBIT].sum() == total_facility_limit #facility limit 3.75 mil
 
 def test_not_funded_tids(timing, statement):
-    not_funded = statement._statement[statement._statement[txt.STATEMENT_HEADER_FUNDED]==False]
+    not_funded = statement._statement[statement._statement[txt.STATEMENT_HEADER_FUNDED]==False][txt.STATEMENT_HEADER_TID].unique().tolist()
+    print("not_funded atms = {}".format(",".join(not_funded)))
     assert len(not_funded) == 0
