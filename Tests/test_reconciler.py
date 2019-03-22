@@ -16,3 +16,7 @@ def statement():
 def test_identify_idle_tids(statement):
     reco = Reconciler(statement)
     reco.identify_idle_tids()
+
+def test_identify_idle_tids(statement):
+    reco = Reconciler(statement)
+    reco.get_balances()

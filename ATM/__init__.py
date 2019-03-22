@@ -15,8 +15,24 @@ class ATM:
         self._operating_companies = statement_df[txt.STATEMENT_HEADER_ACCOUNT].unique().tolist()
     def get_operating_companies(self):
         return "/".join([str(x) for x in self._operating_companies])
+    def get_last_activity_summary(self):
+        return self._statement_df[-10:].to_string(index_names=False, justify='left')
+
     def get_tid(self):
         return self._tid
+    def get_company_balance(self, return_type = dict):
+        balances = {}
+        for company in self._operating_companies:
+            statement_for_company = self._statement_df[self._statement_df[txt.STATEMENT_HEADER_ACCOUNT]==company]
+            balances[company] = statement_for_company[txt.STATEMENT_HEADER_DEBIT].sum() - statement_for_company[txt.STATEMENT_HEADER_CREDIT].sum()
+        if return_type == dict:
+            return balances
+        elif return_type == str:
+            combined_text = ""
+            company_balance_text= "{account} Balance: {balance:,}\n\t"
+            for account, balance in balances.items():
+                combined_text += company_balance_text.format(account = account, balance= balance)
+            return combined_text
 
     def get_balance(self):
         return self._total_debits - self._total_credits
