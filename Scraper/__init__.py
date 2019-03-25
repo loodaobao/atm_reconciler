@@ -38,7 +38,7 @@ class Scraper:
         self.session = sess
 
 
-    def get_tid_urls(self):
+    def _get_tid_urls(self):
         try:
             return self._tid_to_url
         except:
@@ -46,7 +46,7 @@ class Scraper:
                 self._login()
             tid_to_url = {}
             if self._login_response.status_code == 200:
-                front_page_bs4 = BeautifulSoup(self._login_response.text)
+                front_page_bs4 = BeautifulSoup(self._login_response.text,"lxml")
                 for row in front_page_bs4.select("tr"):
                     a_tags_in_row = row.select("td div a")
                     tid_tag = [x for x in a_tags_in_row if x.get("href") is not None \
@@ -67,4 +67,4 @@ class Scraper:
             else:
                 print("ATM Co Portal: Login Failed")
             self._tid_to_url = tid_to_url
-            return tid_url
+            return self._tid_to_url
