@@ -18,9 +18,11 @@ class Reconciler():
                             txt.VENUE_SMART: 36022436029,
                             txt.CASH_POINT: 36022444889
                         }
-    def __init__(self,):
-        statement = Statement()
-        statement.setup()
+    def __init__(self, statement = None):
+        if not statement:
+            statement = Statement()
+            statement.setup()
+
         self.statement =statement
         self.atms = {x:ATM(x,statement.get_statement_by_tid(x)) for x in statement._get_all_funded_tids()}
     def get_summary(self, tid):
@@ -28,7 +30,6 @@ class Reconciler():
             print("This TID does not exist in the bank statement. Please try again...")
             return
         atm = self.atms[tid]
-
 
         summary = """
         TID: {tid}
@@ -52,9 +53,6 @@ class Reconciler():
         )
         print(summary)
 
-
-
-
     def get_balances(self):
         df = self.statement.get_statement_by_company_name(company_name = None)
         df = pd.pivot_table(df,
@@ -72,7 +70,7 @@ class Reconciler():
         except:
 
             all_idle = []
-            for tid, atm in self.atms:
+            for tid, atm in self.atms.items():
                 days_to_last_activity = atm.get_days_to_last_activity()
                 last_funding_date = atm.get_last_funding_date()
                 last_inflow_date = atm.get_last_inflow_date()
