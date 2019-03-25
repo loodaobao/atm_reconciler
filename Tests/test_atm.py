@@ -11,8 +11,6 @@ import pytest
 def statement():
     st = Statement(recompile_bulk_transactions = False)
     st.setup()
-
-
     yield st
 
 def test_atm_get_last_funding_date(statement):

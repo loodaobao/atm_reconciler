@@ -1,5 +1,6 @@
 # ignore AppData folder content
 AppData/*
+Records/
 *.csv
 *.xlsx
 # Byte-compiled / optimized / DLL files

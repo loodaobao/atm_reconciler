@@ -10,7 +10,6 @@ import pytest
 @pytest.fixture(scope="function")
 def timing():
     start = datetime.datetime.now()
-
     yield
     finish = datetime.datetime.now()
     print("\nusing time = {}".format(finish-start))
@@ -58,3 +57,6 @@ def test_not_funded_tids(timing, statement):
     not_funded = statement._statement[statement._statement[txt.STATEMENT_HEADER_FUNDED]==False][txt.STATEMENT_HEADER_TID].unique().tolist()
     print("not_funded atms = {}".format(",".join(not_funded)))
     assert len(not_funded) == 0
+
+def test_save(timing, statement):
+    statement.save_records()

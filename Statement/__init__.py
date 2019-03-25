@@ -30,6 +30,7 @@ class Statement:
         self._appdata_path = join(self._project_root, "AppData")
         self._fixes_instruction_path = join(self._project_root,"AppData/fixes.csv")
         self._bulk_transaction_pickle_path = join(self._appdata_path,"bulk_transaction.pickle")
+        self._record_path = join(self._project_root,"Records")
         self._statement = None
         self._cleaned = False
         self._fixed = False
@@ -181,52 +182,58 @@ class Statement:
 
             bulk_transactions_list.append(data_row)
 
+    def save_records(self):
+        today = str(datetime.datetime.today().date()).replace("-","")
+        self._get_bulk_transactions_dataframe().to_csv(join(self._record_path,"bulk_{}.csv".format(today)))
+        self._statement.to_csv(join(self._record_path,"statement_{}.csv".format(today)))
 
 
     def _get_bulk_transactions_dataframe(self):
-        bulk_transactions_file_names = self._get_bulk_transactions_file_names()
-        if self._recompile_bulk_transactions:
-            print("recompiling bulk")
+        try:
+            return self._bulk
+        except:
+            bulk_transactions_file_names = self._get_bulk_transactions_file_names()
+            if self._recompile_bulk_transactions:
+                print("recompiling bulk")
 
-            bulk_transactions_list = []
-            for file_name in bulk_transactions_file_names:
-                if "VS" in file_name:
-                    company_account = self.westpac_accounts[txt.VENUE_SMART]
-                else:
-                    company_account = self.westpac_accounts[txt.ATMCO]
-                self._read_bulk_transaction_file(company_account, file_name, bulk_transactions_list)
-
-        else:
-            print("using pickle...")
-            if not os.path.isfile(self._bulk_transaction_pickle_path):
-                print("pickle of bulk trans doesn't exist")
-                self._recompile_bulk_transactions = True
-                return self._get_bulk_transactions_dataframe()
-            else:
-                infile = open(self._bulk_transaction_pickle_path,'rb')
-                bulk_transactions_list = pickle.load(infile)
-                infile.close()
-                last_update_date = datetime.datetime.strptime(bulk_transactions_list[-1][1],"%m/%d/%Y")
-                print("last_entry date = {}".format(last_update_date))
-                needed_file_names = [
-                    x for x in bulk_transactions_file_names if datetime.datetime.strptime(x[:8], "%Y%m%d")>last_update_date
-                ]
-                print("needed_file_count = {}".format(len(needed_file_names)))
-
-                for file_name in needed_file_names:
+                bulk_transactions_list = []
+                for file_name in bulk_transactions_file_names:
                     if "VS" in file_name:
                         company_account = self.westpac_accounts[txt.VENUE_SMART]
                     else:
                         company_account = self.westpac_accounts[txt.ATMCO]
                     self._read_bulk_transaction_file(company_account, file_name, bulk_transactions_list)
-        bulk_transactions_df =pd.DataFrame(bulk_transactions_list, columns=self._statement.columns)
-        outfile = open(self._bulk_transaction_pickle_path,'wb')
-        pickle.dump(bulk_transactions_list, outfile)
-        outfile.close()
-        bulk_transactions_df[txt.STATEMENT_HEADER_DATE] = pd.to_datetime(bulk_transactions_df[txt.STATEMENT_HEADER_DATE])
-        bulk_transactions_df.to_csv("bulk.csv",index=False)
 
-        return bulk_transactions_df
+            else:
+                print("using pickle...")
+                if not os.path.isfile(self._bulk_transaction_pickle_path):
+                    print("pickle of bulk trans doesn't exist")
+                    self._recompile_bulk_transactions = True
+                    return self._get_bulk_transactions_dataframe()
+                else:
+                    infile = open(self._bulk_transaction_pickle_path,'rb')
+                    bulk_transactions_list = pickle.load(infile)
+                    infile.close()
+                    last_update_date = datetime.datetime.strptime(bulk_transactions_list[-1][1],"%m/%d/%Y")
+                    print("last_entry date = {}".format(last_update_date))
+                    needed_file_names = [
+                        x for x in bulk_transactions_file_names if datetime.datetime.strptime(x[:8], "%Y%m%d")>last_update_date
+                    ]
+                    print("needed_file_count = {}".format(len(needed_file_names)))
+
+                    for file_name in needed_file_names:
+                        if "VS" in file_name:
+                            company_account = self.westpac_accounts[txt.VENUE_SMART]
+                        else:
+                            company_account = self.westpac_accounts[txt.ATMCO]
+                        self._read_bulk_transaction_file(company_account, file_name, bulk_transactions_list)
+            bulk_transactions_df =pd.DataFrame(bulk_transactions_list, columns=self._statement.columns)
+            outfile = open(self._bulk_transaction_pickle_path,'wb')
+            pickle.dump(bulk_transactions_list, outfile)
+            outfile.close()
+            bulk_transactions_df[txt.STATEMENT_HEADER_DATE] = pd.to_datetime(bulk_transactions_df[txt.STATEMENT_HEADER_DATE])
+            self._bulk = bulk_transactions_df
+            return self._bulk
 
 
 
@@ -278,7 +285,7 @@ class Statement:
         self._check_not_funded_tids()
 
         self._statement.sort_values(txt.STATEMENT_HEADER_DATE, inplace=True)
-        self._statement.to_csv("test.csv",index=False)
+
         self._fixed = True
     def setup(self):
         self._clean()

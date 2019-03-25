@@ -22,7 +22,7 @@ class Reconciler():
         if not statement:
             statement = Statement()
             statement.setup()
-
+        self._record_path = statement._record_path
         self.statement =statement
         self.atms = {x:ATM(x,statement.get_statement_by_tid(x)) for x in statement._get_all_funded_tids()}
     def get_summary(self, tid):
@@ -54,17 +54,25 @@ class Reconciler():
         print(summary)
 
     def get_balances(self):
-        df = self.statement.get_statement_by_company_name(company_name = None)
-        df = pd.pivot_table(df,
-                            index = txt.STATEMENT_HEADER_TID,
-                            columns = [txt.STATEMENT_HEADER_ACCOUNT],
-                            aggfunc = np.sum
-                            )[[txt.STATEMENT_HEADER_CREDIT,txt.STATEMENT_HEADER_DEBIT]]
-        balances = df[txt.STATEMENT_HEADER_DEBIT]-df[txt.STATEMENT_HEADER_CREDIT]
-        balances.to_csv("balances_{}.csv".format(datetime.datetime.today().date()))
-        return balances
+        try:
+            return self._balances
+        except:
+            df = self.statement.get_statement_by_company_name(company_name = None)
+            df = pd.pivot_table(df,
+                                index = txt.STATEMENT_HEADER_TID,
+                                columns = [txt.STATEMENT_HEADER_ACCOUNT],
+                                aggfunc = np.sum
+                                )[[txt.STATEMENT_HEADER_CREDIT,txt.STATEMENT_HEADER_DEBIT]]
+            balances = df[txt.STATEMENT_HEADER_DEBIT]-df[txt.STATEMENT_HEADER_CREDIT]
+            self._balances = balances
+            return self._balances
 
-    def identify_idle_tids(self):
+    def save_records(self):
+        today = str(datetime.datetime.today().date()).replace("-","")
+        self.get_balances().to_csv(join(self._record_path,"balances_{}.csv".format(today)))
+        self.get_idle_tids().to_csv(join(self._record_path,"idle_{}.csv".format(today)))
+    
+    def get_idle_tids(self):
         try:
             return self._idle_tids
         except:
@@ -86,6 +94,6 @@ class Reconciler():
                         ]
                     all_idle.append(data)
             df = pd.DataFrame(all_idle, columns=[txt.STATEMENT_HEADER_ACCOUNT, txt.STATEMENT_HEADER_TID,"days_to_last_activity","LAST_INFLOW_DATE","LAST_FUNDING_DATE","BALANCE"])
-            df.to_csv("idle_{}.csv".format(datetime.datetime.today().date()),index=False)
+
             self._idle_tids = df
             return df
