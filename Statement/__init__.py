@@ -148,7 +148,8 @@ class Statement:
             all_orders = [
                             x[:-4] for x in os.listdir(self._appdata_path) \
                                 if len(x.split(".")[0]) == 10 or \
-                                (len(x.split(".")[0])==12 and "VS" in x)
+                                (len(x.split(".")[0])==12 and "VS" in x) or \
+                                (len(x.split(".")[0])==12 and "CP" in x)
                         ]
             self._all_orders = all_orders
             return all_orders
@@ -200,6 +201,8 @@ class Statement:
                 for file_name in bulk_transactions_file_names:
                     if "VS" in file_name:
                         company_account = self.westpac_accounts[txt.VENUE_SMART]
+                    elif "CP" in file_name:
+                        company_account = self.westpac_accounts[txt.CASH_POINT]
                     else:
                         company_account = self.westpac_accounts[txt.ATMCO]
                     self._read_bulk_transaction_file(company_account, file_name, bulk_transactions_list)
