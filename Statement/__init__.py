@@ -227,6 +227,8 @@ class Statement:
                     for file_name in needed_file_names:
                         if "VS" in file_name:
                             company_account = self.westpac_accounts[txt.VENUE_SMART]
+                        elif "CP" in file_name:
+                            company_account = self.westpac_accounts[txt.CASH_POINT]
                         else:
                             company_account = self.westpac_accounts[txt.ATMCO]
                         self._read_bulk_transaction_file(company_account, file_name, bulk_transactions_list)

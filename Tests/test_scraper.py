@@ -22,14 +22,7 @@ def scrape():
 def test_scraper_login(scrape):
     assert scrape._login_response.status_code == 200
 
-def test_scraper_all(scrape, timing):
 
-    all_tids = scrape._get_tid_urls()
-    tids = all_tids.keys()
-    dfs = {}
-    for tid in tids:
-        result = scrape._scrape_all(tid)
-        dfs[tid] = result
-
-    with open(join(scrape.statement._project_root,"crawel.pickle"),"wb") as f:
-        pickle.dump(dfs,f)
+def test_scrape_2():
+    scrape = Scraper()
+    scrape._scrape_all()
