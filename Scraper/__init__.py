@@ -181,7 +181,7 @@ class Scraper:
                 old_data = old_data[
                     old_data["DATE"].apply(lambda x: not (int(x.split("/")[0])== month and int(x.split("/")[2])==year))
                 ]
-            old_data.to_csv("old_remove_2_month.csv")
+
             all_urls = ("https://www.atmco-treasury.com/{url}{month_part}".format(url=url, month_part = month_part) for url in tids_to_url.values() for month_part in all_part_urls)
 
         threads = []
@@ -196,4 +196,4 @@ class Scraper:
         df = df[df["DATE"]!="0"]
         df["DATE"] = df["DATE"].apply(lambda x:"{}/{}/{}".format(x.split("/")[1],x.split("/")[0],x.split("/")[2]) if len(x.split("/"))==3 else x)
         old_data = old_data.append(df,ignore_index = True)
-        old_data.to_csv("new_added_two_montsh.csv")
+        old_data.to_csv(self._portal_data_path,index=False)
