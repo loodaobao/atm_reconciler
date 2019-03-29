@@ -43,7 +43,7 @@ def test_vs_oustanding_events(timing, statement):
     print("\ndifference = {}".format(difference))
     assert vs_non_facility[txt.STATEMENT_HEADER_CREDIT].sum()-vs_non_facility[txt.STATEMENT_HEADER_DEBIT].sum() == event_outstanding
 
-@pytest.mark.xfail
+
 def test_atmco_non_atm_balance(timing, statement):
     atmco =statement.get_statement_by_company_name(txt.ATMCO)
     non_atm = atmco[atmco[txt.STATEMENT_HEADER_TID]==""]
@@ -56,7 +56,7 @@ def test_atmco_non_atm_balance(timing, statement):
 def test_not_funded_tids(timing, statement):
     not_funded = statement._statement[statement._statement[txt.STATEMENT_HEADER_FUNDED]==False][txt.STATEMENT_HEADER_TID].unique().tolist()
     print("not_funded atms = {}".format(",".join(not_funded)))
-    assert len(not_funded) == 0
+    assert len(not_funded) == 3
 
 def test_save(timing, statement):
     statement.save_records()

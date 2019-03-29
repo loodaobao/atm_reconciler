@@ -15,7 +15,6 @@ class Scraper:
     def __init__(self):
         self.session = None
         self._project_root = os.getcwd()
-
         self._appdata_path = join(self._project_root, "AppData")
         self._login_response = None
         self._portal_account = "sellis@goldfieldsmoney.com.au"
@@ -115,42 +114,7 @@ class Scraper:
             self._scraper_container.append(collected_row)
 
 
-    def _get_data_df(self, tid, year,month ):
-        print(tid, month, year)
-        tids_to_url = self._get_tid_urls()
 
-        url ="https://www.atmco-treasury.com/{activity_url}&month={month}:{year}".format(
-            activity_url = tids_to_url[tid],
-            month=month,
-            year=year
-        )
-        print(url)
-        res = self.session.get(url)
-        print("get response {}".format(url))
-        bs = BeautifulSoup(res.text.replace("\r", "").replace("\t", "").replace("\n", ""),"lxml")
-        collected_monthly_data = []
-        for index, row in enumerate(bs.select("tr")):
-            collected_row = []
-            if index!=0:
-                tds = row.select("td")
-                for ind, td in enumerate(tds):
-                    if ind < 1:
-                        continue
-                    if td.select("div"):
-                        tex = td.select("div")[0].text
-                    else:
-                        tex = td.text
-                    tex = tex.replace(" ","").replace("$","").replace("-","")
-                    if tex=="":tex="0"
-                    collected_row.append(tex)
-            else:
-                continue
-            collected_monthly_data.append(collected_row)
-
-
-        headers = ["TID","CARRY_FORWARD","CASH_ORDERS","NUM_TRANS","DATE","SETTLEMENTS","CREDITS","REBANK"]
-        df = pd.DataFrame(collected_monthly_data, columns = headers)
-        return df
 
     def _scrape_all(self,number_of_months=2):
         tids_to_url = self._get_tid_urls()

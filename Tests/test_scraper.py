@@ -23,6 +23,5 @@ def test_scraper_login(scrape):
     assert scrape._login_response.status_code == 200
 
 
-def test_scrape_2():
-    scrape = Scraper()
+def test_scrape_2(scrape, timing):
     scrape._scrape_all()
